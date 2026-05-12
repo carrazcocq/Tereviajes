@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tereviajes - Agencia de Viajes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap" rel="stylesheet">
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"DM Sans"', 'sans-serif'],
+              serif: ['"Playfair Display"', 'serif'],
+              display: ['"Clash Grotesk"', 'sans-serif'],
+            },
+            colors: {
+              trip: {
+                primary: '#1076BC',   
+                secondary: '#44A6E3', 
+                tertiary: '#83D2F6',  
+                ice: '#D4F3FD',       
+                black: '#1A1A1A',
+                gray: '#F3F4F6',
+                light: '#FAFAFA'
+              }
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+              'fade-in': 'fadeIn 1s ease-out forwards',
+              'marquee': 'marquee 40s linear infinite',
+              'card-pulse': 'cardPulse 2s ease-in-out infinite',
+              'highlight-card': 'highlightCard 2s ease-in-out',
+            },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              marquee: {
+                '0%': { transform: 'translateX(0%)' },
+                '100%': { transform: 'translateX(-100%)' },
+              },
+              cardPulse: {
+                '0%, 100%': { boxShadow: '0 0 0 0 rgba(16, 118, 188, 0)', borderColor: 'rgba(16, 118, 188, 0)' },
+                '50%': { boxShadow: '0 0 0 10px rgba(16, 118, 188, 0.2)', borderColor: '#1076BC' },
+              },
+              highlightCard: {
+                '0%, 100%': { transform: 'scale(1)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' },
+                '50%': { transform: 'scale(1.05)', boxShadow: '0 0 0 4px rgba(16, 118, 188, 0.5), 0 20px 25px -5px rgba(0, 0, 0, 0.1)' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      html { scroll-behavior: smooth; }
+      /* Restaurado el estilo Glass Nav pero sobre el azul original si se desea, 
+         pero para "verse como antes" usaremos el azul solido con transparencia leve */
+      .glass-nav {
+        background: rgba(16, 118, 188, 0.95); /* Azul Trip Primary */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+      
+      .view-section { display: none; }
+      .view-section.active { display: block; animation: fadeIn 0.5s ease-out; }
+      
+      .modal-backdrop { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+      .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+      .modal-content { transform: translateY(20px) scale(0.95); transition: all 0.3s ease; }
+      .modal-backdrop.open .modal-content { transform: translateY(0) scale(1); }
+      
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+      .draggable-none {
+          user-drag: none;
+          -webkit-user-drag: none;
+          user-select: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="font-sans antialiased text-gray-900 bg-white selection:bg-trip-primary selection:text-white overflow-x-hidden">
+
+    <!-- Navbar (Restaurada a Azul) -->
+    <nav class="fixed w-full z-50 top-0 left-0 border-b border-white/10 bg-trip-primary shadow-lg transition-all duration-300">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16 md:h-20">
+          <!-- Logo -->
+          <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="navigateTo('home')">
+             <img src="https://i.postimg.cc/FR6Q9jZJ/Logo.png" alt="Tereviajes" class="h-10 w-10 md:h-14 md:w-14 rounded-full object-cover bg-white shadow-md border-2 border-white/20"/>
+          </div>
+
+          <!-- Botón Reserva (Blanco sobre Azul) -->
+          <div class="flex items-center space-x-4">
+            <button onclick="openBookingModal()" class="bg-white text-trip-primary px-5 py-2 md:px-6 md:py-2.5 rounded-full font-bold hover:bg-trip-light transition-all duration-300 transform hover:scale-105 shadow-xl text-sm md:text-base flex items-center gap-2">
+              <i data-lucide="calendar-check" class="w-4 h-4 md:hidden"></i>
+              <span>Reservar Ahora</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main id="app-content" class="pt-0">
+      
+      <!-- VIEW: HOME -->
+      <div id="view-home" class="view-section active">
+        
+        <!-- Hero (Ajustado margen superior para navbar fija) -->
+        <section class="relative pt-8 pb-12 lg:pt-16 lg:pb-24 overflow-hidden mt-16 md:mt-20">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div class="space-y-6 md:space-y-8 animate-fade-in-up z-10 relative">
+                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-display font-semibold text-center lg:text-left text-trip-black leading-[1.1] min-h-[3.3em] lg:min-h-[2.2em] tracking-tight mt-4">
+                  <span class="text-trip-primary" id="hero-typewriter"></span>
+                  <span class="animate-pulse text-trip-primary font-light">|</span>
+                  <span class="block sm:inline"> tu escapada ideal.</span>
+                </h1>
+                
+                <!-- VIDEO PROMO IN HERO -->
+                <div class="w-full max-w-[480px] mx-auto lg:mx-0 my-6">
+                    <div class="flex items-center gap-2 mb-3 justify-center lg:justify-start">
+                        <div class="bg-trip-primary/10 p-1.5 rounded-full animate-pulse">
+                            <i data-lucide="play-circle" class="w-5 h-5 text-trip-primary fill-current"></i>
+                        </div>
+                        <span class="text-xs font-bold text-trip-primary uppercase tracking-widest">Así de fácil, dale al play</span>
+                    </div>
+                    <div class="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-white bg-black aspect-video group hover:shadow-trip-primary/20 transition-all duration-300">
+                        <video 
+                            class="w-full h-full object-cover" 
+                            controls 
+                            playsinline
+                            poster="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1200&auto=format&fit=crop"
+                        >
+                            <source src="https://d1yei2z3i6k35z.cloudfront.net/6696336/69928235d78f0_TereviajesvideoPromp.mp4" type="video/mp4">
+                            Tu navegador no soporta el video.
+                        </video>
+                    </div>
+                </div>
+
+                <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left leading-relaxed">
+                  Planificamos cada detalle de tu viaje. Tú solo encárgate de disfrutar y crear recuerdos inolvidables.
+                </p>
+                
+                <!-- Smart Selector -->
+                <div class="bg-white p-2 rounded-2xl shadow-xl border border-gray-100 flex flex-col sm:flex-row gap-2 max-w-xl mx-auto lg:mx-0 relative z-40">
+                    <div class="flex-1 px-4 py-3 flex items-center gap-3 border-b sm:border-b-0 sm:border-r border-gray-100 relative">
+                        <i data-lucide="map-pin" class="text-trip-primary flex-shrink-0"></i>
+                        <div class="text-left w-full cursor-pointer relative" onclick="openModal('hero-selection-modal')">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Elige tu Destino</p>
+                            <div class="flex items-center justify-between">
+                                <span id="hero-selected-dest" class="font-medium truncate block max-w-[150px] sm:max-w-full text-gray-400">¿A dónde quieres ir?</span>
+                                <i data-lucide="chevron-down" class="text-gray-400 w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 px-4 py-3 flex items-center gap-3 bg-gray-50 sm:bg-transparent rounded-lg sm:rounded-none">
+                        <i data-lucide="calendar" class="text-gray-400 flex-shrink-0" id="hero-date-icon"></i>
+                        <div class="text-left w-full">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Fecha de Salida</p>
+                            <div id="hero-selected-date" class="font-medium text-sm md:text-base text-gray-400 italic">Automático</div>
+                        </div>
+                    </div>
+                    <button onclick="handleHeroSearch()" class="bg-trip-primary hover:bg-trip-secondary text-white p-4 rounded-xl transition-all duration-300 flex justify-center items-center shadow-lg active:scale-95">
+                        <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                 <div class="flex items-center justify-center lg:justify-start gap-4 pt-4">
+                   <div class="flex -space-x-3">
+                      <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white object-cover">
+                      <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white object-cover">
+                      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white object-cover">
+                      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white object-cover">
+                   </div>
+                   <div class="text-sm font-medium text-gray-600">
+                     <span class="text-trip-primary font-bold">2.5k+</span> viajeros felices
+                   </div>
+                </div>
+              </div>
+
+              <!-- Hero Images -->
+              <div class="relative hidden lg:block h-[600px] animate-fade-in">
+                 <div class="absolute top-0 right-0 w-[80%] h-[90%] bg-trip-ice/50 rounded-[40px] -z-10 transform rotate-3"></div>
+                 <div class="absolute top-10 right-10 w-[65%] h-[60%] rounded-3xl overflow-hidden shadow-2xl transition-transform hover:-translate-y-2 duration-500">
+                   <img src="https://i.postimg.cc/jSmMg3Wy/Whats_App_Image_2026_0e2_13_at_13_23_20.jpg" class="w-full h-full object-cover">
+                   <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-bold shadow-lg text-trip-primary">📍 Experiencias Únicas</div>
+                 </div>
+                 <div class="absolute bottom-10 left-0 w-[45%] h-[40%] rounded-3xl overflow-hidden shadow-2xl border-4 border-white transition-transform hover:-translate-y-2 duration-500 delay-100">
+                   <img src="https://i.postimg.cc/7PGdr9HM/Whats_App_Image_2026_01_13_at_22_10_08_(1).jpg" class="w-full h-full object-cover">
+                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Offer Bar (Moved back below Hero/Nav area for flow) -->
+        <div class="bg-trip-primary text-white py-3 overflow-hidden relative z-30">
+          <div class="flex w-full" id="offer-bar-content">
+             <!-- Content injected via JS -->
+          </div>
+        </div>
+
+        <!-- Destinations Grid -->
+        <section id="destinos" class="py-12 md:py-20 bg-trip-light scroll-mt-20">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+             <div class="flex flex-col md:flex-row justify-between items-end mb-8 md:mb-12 gap-4">
+                <div class="max-w-xl w-full text-center md:text-left">
+                  <h2 class="text-trip-primary font-semibold tracking-wider uppercase mb-2 text-sm md:text-base">Próximas Salidas</h2>
+                  <h3 class="text-3xl md:text-4xl font-display font-semibold text-trip-black leading-tight">Explora nuestros destinos</h3>
+                </div>
+                <button onclick="openCalendarModal()" class="hidden md:block text-trip-black border-b-2 border-trip-black pb-1 hover:text-trip-primary hover:border-trip-primary transition-colors font-medium">Ver calendario completo</button>
+             </div>
+             <div id="destinations-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+               <!-- Destinations Injected JS -->
+             </div>
+             <div class="mt-8 text-center md:hidden">
+                <button onclick="openCalendarModal()" class="text-trip-black border-b-2 border-trip-black pb-1 hover:text-trip-primary hover:border-trip-primary transition-colors font-medium">Ver calendario completo</button>
+             </div>
+          </div>
+        </section>
+
+        <!-- Featured Destinations -->
+        <section class="py-16 md:py-24 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+           <div class="absolute top-0 right-0 w-96 h-96 bg-trip-ice/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+              <div class="text-center mb-12">
+                 <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-trip-primary/10 text-trip-primary font-bold text-sm mb-4 border border-trip-primary/20">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i><span class="uppercase tracking-wider">Grandes Viajes 2026</span>
+                 </div>
+                 <h2 class="text-3xl md:text-5xl font-display font-bold text-trip-black mb-4">Destinos Destacados</h2>
+              </div>
+              <div id="featured-grid" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                 <!-- Featured Injected JS -->
+              </div>
+           </div>
+        </section>
+
+        <!-- Bento Features -->
+        <section class="py-12 md:py-20 bg-white">
+           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+               <div class="text-center mb-10 md:mb-16 max-w-3xl mx-auto">
+                   <h2 className="text-trip-primary font-semibold tracking-wider uppercase mb-2 text-sm md:text-base">Momentos que unen</h2>
+                   <h3 class="text-3xl md:text-4xl font-display font-semibold text-trip-black mb-4 leading-tight">Aventuras compartidas</h3>
+                   <p class="text-gray-600 px-4">Viajar es mucho más que visitar un lugar; es compartir el camino. Diseñamos itinerarios donde la convivencia y la diversión en grupo crean recuerdos imborrables.</p>
+               </div>
+               <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                   <div class="bg-gray-50 p-6 md:p-8 rounded-3xl hover:bg-trip-primary hover:text-white group transition-all duration-300">
+                       <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 text-2xl shadow-sm">🛡️</div>
+                       <h4 class="text-lg md:text-xl font-bold mb-2">Seguridad Integral</h4>
+                       <p class="text-sm md:text-base text-gray-500 group-hover:text-white/90">Asistencia completa para garantizar el bienestar de todo el grupo.</p>
+                   </div>
+                   <div class="bg-gray-50 p-6 md:p-8 rounded-3xl hover:bg-trip-primary hover:text-white group transition-all duration-300 transform md:-translate-y-4 shadow-lg border border-gray-100">
+                       <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 text-2xl shadow-sm">🤝</div>
+                       <h4 class="text-lg md:text-xl font-bold mb-2">Convivencia Única</h4>
+                       <p class="text-sm md:text-base text-gray-500 group-hover:text-white/90">Actividades pensadas para fomentar la interacción y la amistad.</p>
+                   </div>
+                   <div class="bg-gray-50 p-6 md:p-8 rounded-3xl hover:bg-trip-primary hover:text-white group transition-all duration-300">
+                       <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 text-2xl shadow-sm">🌍</div>
+                       <h4 class="text-lg md:text-xl font-bold mb-2">Inmersión Cultural</h4>
+                       <p class="text-sm md:text-base text-gray-500 group-hover:text-white/90">Experiencias auténticas guiadas por expertos locales.</p>
+                   </div>
+               </div>
+           </div>
+        </section>
+
+        <!-- Image Gallery -->
+        <section class="py-16 md:py-24 bg-white overflow-hidden select-none">
+            <div class="max-w-7xl mx-auto px-4 mb-10 text-center">
+                <h2 class="text-3xl md:text-5xl font-display font-bold text-trip-black mb-4">Recuerdos Inolvidables</h2>
+                <p class="text-gray-600">Un vistazo a las experiencias de nuestros viajeros.</p>
+            </div>
+            <div id="gallery-container" class="flex overflow-x-hidden cursor-grab space-x-4 py-4 scrollbar-hide">
+                <!-- Images Injected JS -->
+            </div>
+            <div class="text-center mt-6 text-gray-400 text-sm md:hidden">
+               <span class="animate-pulse">👈 Desliza para ver más 👉</span>
+            </div>
+        </section>
+      </div>
+
+      <!-- VIEW: ABOUT -->
+      <div id="view-about" class="view-section pt-28 pb-20 bg-white min-h-screen">
+          <div class="max-w-7xl mx-auto px-4">
+              <button onclick="navigateTo('home')" class="flex items-center text-gray-500 hover:text-trip-primary mb-8 group">
+                  <i data-lucide="arrow-left" class="mr-2 group-hover:-translate-x-1 transition-transform"></i> Volver al inicio
+              </button>
+              <div class="text-center max-w-3xl mx-auto mb-16">
+                  <h1 class="text-4xl md:text-6xl font-display font-bold text-trip-black mb-6">Más que una agencia, <span class="text-trip-primary">tu compañera.</span></h1>
+                  <p class="text-lg text-gray-600">En Tereviajes diseñamos experiencias que se quedan grabadas en el corazón. Somos una familia de viajeros ayudando a otros viajeros.</p>
+              </div>
+              <div class="max-w-3xl mx-auto bg-gray-50 rounded-[2.5rem] p-8 md:p-12 border border-gray-100 text-center">
+                   <h3 class="text-3xl font-display font-bold text-trip-black mb-6">Viajando con Teresa</h3>
+                   <p class="text-gray-600 mb-4">Fundé Tereviajes (CICMA 4373) para ofrecer el trato humano que faltaba online.</p>
+                   <div class="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-gray-200">
+                       <div><p class="text-3xl font-bold text-trip-primary">10+</p><p class="text-xs text-gray-500 uppercase">Años</p></div>
+                       <div><p class="text-3xl font-bold text-trip-primary">5k+</p><p class="text-xs text-gray-500 uppercase">Viajeros</p></div>
+                       <div><p class="text-3xl font-bold text-trip-primary">50+</p><p class="text-xs text-gray-500 uppercase">Destinos</p></div>
+                   </div>
+              </div>
+          </div>
+      </div>
+
+       <!-- VIEW: PRIVACY -->
+      <div id="view-privacy" class="view-section pt-28 pb-20 bg-gray-50 min-h-screen">
+         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+             <button onclick="navigateTo('home')" class="flex items-center text-gray-500 hover:text-trip-primary mb-6 group transition-colors">
+               <i data-lucide="arrow-left" class="mr-2 group-hover:-translate-x-1 transition-transform"></i> Volver
+             </button>
+             
+             <div class="mb-10">
+               <h1 class="text-4xl md:text-5xl font-display font-bold text-trip-black mb-4">Política de Privacidad</h1>
+               <p class="text-gray-500 text-sm">En cumplimiento del Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD).</p>
+             </div>
+
+             <div class="bg-white rounded-[2rem] shadow-xl p-8 md:p-12 border border-gray-100 space-y-12">
+                 
+                 <!-- Section 1 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="user-check" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div class="w-full">
+                     <h3 class="text-xl font-bold text-trip-black mb-4">1. Responsable del Tratamiento</h3>
+                     <p class="text-gray-600 leading-relaxed mb-6">Los datos personales recogidos a través de este sitio web son responsabilidad de:</p>
+                     
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <div>
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Agencia / Responsable</p>
+                           <p class="text-trip-black font-bold text-lg">Tere Viajes / Teresa Soto</p>
+                        </div>
+                        <div>
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">NIF</p>
+                           <p class="text-trip-black font-bold text-lg">53816627P</p>
+                        </div>
+                        <div class="md:col-span-2">
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Dirección</p>
+                           <p class="text-trip-black font-bold text-lg">Calle Manuel De Falla, 4, Collado Villalba</p>
+                        </div>
+                        <div>
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Licencia CICMA</p>
+                           <p class="text-trip-black font-bold text-lg">4373</p>
+                        </div>
+                        <div>
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Teléfono</p>
+                           <a href="tel:+34649866985" class="text-trip-primary font-bold hover:underline">+34 649 866 985</a>
+                        </div>
+                        <div>
+                           <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Email de Contacto</p>
+                           <a href="mailto:viajandoconteresa@gmail.com" class="text-trip-primary font-bold hover:underline break-all">viajandoconteresa@gmail.com</a>
+                        </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <hr class="border-gray-100" />
+
+                 <!-- Section 2 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="database" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div>
+                     <h3 class="text-xl font-bold text-trip-black mb-3">2. Finalidad del Tratamiento</h3>
+                     <p class="text-gray-600 leading-relaxed mb-2">En Tere Viajes tratamos la información que nos facilita con las siguientes finalidades:</p>
+                     <ul class="space-y-2 mt-2">
+                       <li class="flex items-start gap-2 text-gray-600"><i data-lucide="check" class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"></i> Gestionar las reservas de viajes y servicios turísticos solicitados.</li>
+                       <li class="flex items-start gap-2 text-gray-600"><i data-lucide="check" class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"></i> Envío de comunicaciones comerciales y ofertas personalizadas (previa autorización).</li>
+                       <li class="flex items-start gap-2 text-gray-600"><i data-lucide="check" class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"></i> Cumplimiento de obligaciones legales, fiscales y contables.</li>
+                     </ul>
+                   </div>
+                 </div>
+
+                 <hr class="border-gray-100" />
+
+                 <!-- Section 3 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="shield-check" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div>
+                     <h3 class="text-xl font-bold text-trip-black mb-3">3. Legitimación</h3>
+                     <p class="text-gray-600 leading-relaxed">
+                       La base legal para el tratamiento de sus datos es la <strong class="text-trip-primary">ejecución del contrato</strong> de servicios turísticos y el <strong class="text-trip-primary">consentimiento expreso</strong> para comunicaciones comerciales.
+                     </p>
+                   </div>
+                 </div>
+                 
+                 <hr class="border-gray-100" />
+                 
+                  <!-- Section 4 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="lock" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div>
+                     <h3 class="text-xl font-bold text-trip-black mb-3">4. Derechos del Usuario</h3>
+                     <p class="text-gray-600 leading-relaxed mb-4">
+                       Usted tiene derecho a acceder, rectificar y suprimir los datos, así como otros derechos detallados en el RGPD (limitación, portabilidad, oposición).
+                     </p>
+                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
+                        Para ejercer estos derechos, envíe un correo a <strong>viajandoconteresa@gmail.com</strong> adjuntando copia de su DNI.
+                     </div>
+                   </div>
+                 </div>
+
+             </div>
+         </div>
+      </div>
+
+       <!-- VIEW: COOKIES -->
+      <div id="view-cookies" class="view-section pt-28 pb-20 bg-gray-50 min-h-screen">
+          <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+             <button onclick="navigateTo('home')" class="flex items-center text-gray-500 hover:text-trip-primary mb-6 group transition-colors">
+               <i data-lucide="arrow-left" class="mr-2 group-hover:-translate-x-1 transition-transform"></i> Volver
+             </button>
+             
+             <div class="mb-10">
+               <h1 class="text-4xl md:text-5xl font-display font-bold text-trip-black mb-4">Política de Cookies</h1>
+               <p class="text-gray-500 text-sm">Transparencia sobre cómo utilizamos las cookies en Tere Viajes.</p>
+             </div>
+
+             <div class="bg-white rounded-[2rem] shadow-xl p-8 md:p-12 border border-gray-100 space-y-12">
+                 
+                 <!-- Section 1 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="cookie" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div>
+                     <h3 class="text-xl font-bold text-trip-black mb-3">1. ¿Qué son las Cookies?</h3>
+                     <p class="text-gray-600 leading-relaxed">
+                       Son pequeños archivos de texto que los sitios web guardan en su dispositivo. Permiten recordar sus preferencias y mejorar su experiencia de navegación. No dañan su equipo.
+                     </p>
+                   </div>
+                 </div>
+
+                 <hr class="border-gray-100" />
+
+                 <!-- Section 2 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="layers" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div class="w-full">
+                     <h3 class="text-xl font-bold text-trip-black mb-4">2. Tipos de Cookies que utilizamos</h3>
+                     <div class="space-y-4">
+                         <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                             <div class="flex items-center gap-2 mb-1">
+                                 <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                 <h4 class="font-bold text-trip-black">Técnicas (Necesarias)</h4>
+                             </div>
+                             <p class="text-sm text-gray-600 ml-4">Esenciales para que la web funcione (seguridad, navegación). No se pueden desactivar.</p>
+                         </div>
+                         <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                             <div class="flex items-center gap-2 mb-1">
+                                 <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                 <h4 class="font-bold text-trip-black">Analíticas</h4>
+                             </div>
+                             <p class="text-sm text-gray-600 ml-4">Nos ayudan a entender cómo interactúan los usuarios con la web (Google Analytics) para mejorar el servicio.</p>
+                         </div>
+                         <div class="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                             <div class="flex items-center gap-2 mb-1">
+                                 <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                 <h4 class="font-bold text-trip-black">Marketing</h4>
+                             </div>
+                             <p class="text-sm text-gray-600 ml-4">Utilizadas para mostrar anuncios relevantes según sus intereses de navegación.</p>
+                         </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <hr class="border-gray-100" />
+
+                 <!-- Section 3 -->
+                 <div class="flex gap-4 md:gap-6">
+                   <div class="flex-shrink-0">
+                     <div class="w-10 h-10 md:w-12 md:h-12 bg-trip-ice rounded-full flex items-center justify-center text-trip-primary"><i data-lucide="settings" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                   </div>
+                   <div>
+                     <h3 class="text-xl font-bold text-trip-black mb-3">3. Gestión y Desactivación</h3>
+                     <p class="text-gray-600 leading-relaxed mb-4">
+                       Puede permitir, bloquear o eliminar las cookies instaladas en su equipo mediante la configuración de las opciones de su navegador:
+                     </p>
+                     <div class="flex flex-wrap gap-2">
+                        <a href="https://support.google.com/chrome/answer/95647" target="_blank" class="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-trip-primary hover:text-white transition-colors">Google Chrome</a>
+                        <a href="https://support.apple.com/es-es/guide/safari/sfri11471/mac" target="_blank" class="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-trip-primary hover:text-white transition-colors">Safari</a>
+                        <a href="https://support.mozilla.org/es/kb/habilitar-y-deshabilitar-cookies-sitios-web-rastrear-preferencias" target="_blank" class="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-trip-primary hover:text-white transition-colors">Firefox</a>
+                     </div>
+                   </div>
+                 </div>
+
+             </div>
+          </div>
+      </div>
+
+    </main>
+
+    <!-- Trust Badge -->
+    <section class="bg-white py-8 border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center text-center gap-4">
+            <p class="text-xs md:text-sm font-semibold text-gray-500 uppercase tracking-widest">
+                Agencia de viajes registrada en la Comunidad De Madrid - CICMA 4373
+            </p>
+            <img src="https://i.postimg.cc/XvxfPRBf/logo.png" alt="Logotipo Comunidad de Madrid" class="h-20 w-auto object-contain"/>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-trip-black text-white pt-12 md:pt-20 pb-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+             <div><h3 class="text-2xl font-bold mb-4">Tereviajes</h3><p class="text-gray-400 text-sm">Hacemos que tus sueños de viaje se hagan realidad.</p></div>
+             <div>
+                <h4 class="font-bold mb-4">Compañía</h4>
+                <ul class="space-y-2 text-gray-400 text-sm">
+                    <li onclick="navigateTo('about')" class="cursor-pointer hover:text-trip-primary">Sobre Nosotros</li>
+                </ul>
+             </div>
+             <div>
+                 <h4 class="font-bold mb-4">Legal</h4>
+                 <ul class="space-y-2 text-gray-400 text-sm">
+                     <li onclick="navigateTo('privacy')" class="cursor-pointer hover:text-trip-primary">Privacidad</li>
+                     <li onclick="navigateTo('cookies')" class="cursor-pointer hover:text-trip-primary">Cookies</li>
+                 </ul>
+             </div>
+         </div>
+         <div class="border-t border-gray-800 pt-8 flex justify-between items-center text-sm text-gray-500">
+             <p>© 2026 Tereviajes. Todos los derechos reservados.</p>
+             <a href="https://www.facebook.com/tereviajes2019" target="_blank" class="hover:text-white"><i data-lucide="facebook"></i></a>
+         </div>
+      </div>
+    </footer>
+    
+    <!-- COOKIE BANNER -->
+    <div id="cookie-banner" class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-[60] p-4 md:p-6 hidden">
+      <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="flex items-start gap-4 flex-1">
+          <div class="bg-trip-ice p-3 rounded-full text-trip-primary hidden sm:block">
+            <i data-lucide="cookie" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-trip-black mb-1">Valoramos tu privacidad</h3>
+            <p class="text-sm text-gray-600 leading-relaxed max-w-3xl">
+              Usamos cookies propias y de terceros para mejorar tu experiencia, analizar el tráfico y mostrarte contenido personalizado. Puedes aceptar todas, rechazarlas o configurar tus preferencias.
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <button onclick="openCookieSettings()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm">
+            Configurar
+          </button>
+          <button onclick="rejectAllCookies()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-sm">
+            Rechazar
+          </button>
+          <button onclick="acceptAllCookies()" class="px-6 py-2.5 rounded-xl bg-trip-primary text-white font-medium hover:bg-trip-secondary transition-colors text-sm shadow-lg shadow-trip-primary/20">
+            Aceptar todas
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COOKIE SETTINGS MODAL -->
+    <div id="cookie-settings-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-backdrop bg-black/50 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col modal-content">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="shield" class="text-trip-primary w-6 h-6"></i>
+                    <h3 class="text-xl font-bold text-trip-black">Configuración de Cookies</h3>
+                </div>
+                <button onclick="closeModal('cookie-settings-modal')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <p class="text-gray-600 text-sm">
+                    Aquí puedes personalizar tus preferencias de cookies. Las cookies técnicas son necesarias para el funcionamiento del sitio y no se pueden desactivar.
+                </p>
+
+                <!-- Necessary -->
+                <div class="flex items-start justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div>
+                        <h4 class="font-bold text-trip-black text-sm mb-1">Estrictamente Necesarias</h4>
+                        <p class="text-xs text-gray-500">Esenciales para la seguridad y navegación del sitio.</p>
+                    </div>
+                    <div class="relative inline-flex items-center cursor-not-allowed opacity-50">
+                        <div class="w-11 h-6 bg-trip-primary rounded-full"></div>
+                        <div class="absolute left-[2px] top-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 translate-x-full"></div>
+                    </div>
+                </div>
+
+                <!-- Analytics -->
+                <div class="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100 hover:border-trip-tertiary transition-colors">
+                    <div>
+                        <h4 class="font-bold text-trip-black text-sm mb-1">Analíticas y Rendimiento</h4>
+                        <p class="text-xs text-gray-500">Nos ayudan a entender cómo usas nuestra web para mejorarla.</p>
+                    </div>
+                    <button id="toggle-analytics" onclick="toggleCookie('analytics')" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none bg-gray-200">
+                        <span class="inline-block w-5 h-5 transform bg-white rounded-full transition-transform duration-200 ease-in-out translate-x-1"></span>
+                    </button>
+                </div>
+
+                <!-- Marketing -->
+                <div class="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100 hover:border-trip-tertiary transition-colors">
+                    <div>
+                        <h4 class="font-bold text-trip-black text-sm mb-1">Publicidad y Marketing</h4>
+                        <p class="text-xs text-gray-500">Permiten mostrarte anuncios relevantes según tus intereses.</p>
+                    </div>
+                    <button id="toggle-marketing" onclick="toggleCookie('marketing')" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none bg-gray-200">
+                        <span class="inline-block w-5 h-5 transform bg-white rounded-full transition-transform duration-200 ease-in-out translate-x-1"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 rounded-b-3xl">
+                <button onclick="rejectAllCookies()" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-medium hover:bg-white transition-colors text-sm">
+                    Rechazar todo
+                </button>
+                <button onclick="saveCookiePreferences()" class="px-5 py-2.5 rounded-xl bg-trip-primary text-white font-medium hover:bg-trip-secondary transition-colors text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    Guardar preferencias
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL: Hero Selection -->
+    <div id="hero-selection-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop bg-black/50 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col relative overflow-hidden modal-content">
+             <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
+                 <h2 class="text-xl md:text-2xl font-bold text-trip-black flex items-center gap-2"><i data-lucide="map" class="text-trip-primary"></i> Selecciona tu Destino</h2>
+                 <button onclick="closeModal('hero-selection-modal')" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"><i data-lucide="x" class="text-gray-600"></i></button>
+             </div>
+             <div id="hero-selection-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gray-50">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="hero-selection-grid">
+                    <!-- Injected via JS -->
+                </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Booking (WhatsApp) -->
+    <div id="booking-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop bg-black/40 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm relative overflow-hidden modal-content flex flex-col">
+            <button onclick="closeModal('booking-modal')" class="absolute top-4 right-4 z-20 text-white/90 hover:text-white bg-black/10 hover:bg-black/20 p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            
+            <!-- Header Persona -->
+            <div class="bg-gradient-to-br from-trip-primary to-trip-secondary p-6 pt-10 text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+                
+                <div class="relative inline-block mb-3">
+                   <img src="https://i.postimg.cc/FR6Q9jZJ/Logo.png" alt="Teresa" class="w-20 h-20 rounded-full border-4 border-white shadow-lg object-contain bg-white">
+                   <div class="absolute bottom-1 right-1 w-5 h-5 bg-[#25D366] border-2 border-white rounded-full animate-pulse shadow-sm" title="En línea"></div>
+                </div>
+                <h3 class="text-white text-xl font-bold tracking-tight">Teresa Soto</h3>
+                <p class="text-trip-ice text-sm font-medium opacity-90">Agente de Viajes • En línea</p>
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-8 bg-white flex-1">
+                <h2 class="text-2xl font-display font-bold text-trip-black text-center mb-2 leading-tight">¡Hablemos de tu viaje!</h2>
+                <p class="text-gray-500 text-center text-sm mb-6 leading-relaxed">Finaliza tu reserva de forma segura y recibe atención VIP directa.</p>
+
+                <!-- Benefits -->
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center gap-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <div class="bg-green-100 p-1 rounded-full text-green-600 flex-shrink-0"><i data-lucide="check" class="w-3 h-3"></i></div>
+                        <span class="font-medium">Confirmación inmediata</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <div class="bg-blue-100 p-1 rounded-full text-trip-primary flex-shrink-0"><i data-lucide="user" class="w-3 h-3"></i></div>
+                        <span class="font-medium">Trato 100% humano, sin robots</span>
+                    </div>
+                </div>
+
+                <button onclick="redirectToWhatsApp()" class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-green-200 hover:shadow-green-300 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2.5 group">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="w-6 h-6 filter brightness-0 invert" alt="WhatsApp">
+                    <span>Abrir Chat ahora</span>
+                </button>
+                <p class="text-xs text-center text-gray-400 mt-4 font-medium">Sin compromiso • Respuesta rápida</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Destination Detail -->
+    <div id="detail-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col md:flex-row max-h-[90vh] md:max-h-[600px] modal-content">
+             <button onclick="closeModal('detail-modal')" class="absolute top-4 right-4 z-20 bg-black/20 text-white p-2 rounded-full"><i data-lucide="x"></i></button>
+             <div class="w-full md:w-2/5 h-48 md:h-auto relative">
+                 <img id="detail-img" class="w-full h-full object-cover">
+                 <div class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-trip-black flex gap-1"><i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-current"></i> <span id="detail-rating"></span></div>
+             </div>
+             <div class="w-full md:w-3/5 p-6 md:p-8 flex flex-col overflow-y-auto custom-scrollbar">
+                 <div class="mb-auto">
+                     <div class="flex justify-between items-start mb-2"><h2 id="detail-title" class="text-2xl font-bold"></h2><p id="detail-price" class="text-2xl font-bold text-trip-primary"></p></div>
+                     <div class="flex gap-3 mb-6">
+                         <span class="bg-gray-100 px-3 py-1 rounded-lg text-sm font-medium text-gray-600 flex gap-1 items-center"><i data-lucide="calendar" class="w-3 h-3"></i> <span id="detail-date"></span></span>
+                         <span class="bg-gray-100 px-3 py-1 rounded-lg text-sm font-medium text-gray-600 flex gap-1 items-center"><i data-lucide="clock" class="w-3 h-3"></i> <span id="detail-days"></span></span>
+                     </div>
+                     <p id="detail-desc" class="text-gray-600 mb-6 leading-relaxed"></p>
+                 </div>
+                 <button onclick="closeModal('detail-modal'); openBookingModal(document.getElementById('detail-title').innerText)" class="w-full bg-trip-primary text-white py-3 rounded-xl font-bold hover:bg-trip-secondary">Reservar Plaza</button>
+             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Calendar -->
+    <div id="calendar-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop bg-trip-black/60 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col relative overflow-hidden modal-content">
+             <div class="bg-trip-primary px-6 py-6 flex justify-between items-center text-white">
+                 <h2 class="text-2xl font-bold flex items-center gap-3"><i data-lucide="calendar"></i> Calendario 2026</h2>
+                 <button onclick="closeModal('calendar-modal')" class="bg-white/10 p-2 rounded-full"><i data-lucide="x"></i></button>
+             </div>
+             <div id="calendar-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gray-50 space-y-8">
+                 <!-- Injected via JS -->
+             </div>
+        </div>
+    </div>
+
+    <!-- Floating Buttons -->
+    <button onclick="openBookingModal('WhatsApp Button')" class="fixed bottom-24 right-4 md:bottom-32 md:right-8 z-50 hover:scale-110 transition-transform group rounded-full bg-white shadow-xl w-14 h-14 md:w-16 md:h-16 border-2 border-white flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20 group-hover:opacity-40"></div>
+        <img src='https://i.postimg.cc/25gnFcF1/Whats-App-svg.webp' class="w-full h-full object-cover relative z-10"/>
+    </button>
+    <button id="scroll-top" onclick="window.scrollTo({top:0, behavior:'smooth'})" class="fixed bottom-4 right-4 md:bottom-8 md:right-8 bg-trip-primary text-white p-3 rounded-full shadow-lg transition-all opacity-0 translate-y-10 z-40 hover:bg-trip-secondary">
+        <i data-lucide="arrow-up"></i>
+    </button>
+
+    <!-- App Logic -->
+    <script type="module">
+        
+        // --- DATA ---
+        const destinations = [
+          { id: 1, title: 'Portugal', location: '14-15 Febrero', price: 175, image: 'https://i.postimg.cc/rmtL0mgH/portugal.jpg', rating: 4.8, days: 2, description: "Sumérgete en el encanto luso recorriendo sus calles empedradas, disfrutando de su gastronomía única y descubriendo la historia que une a dos países hermanos." },
+          { id: 3, title: 'Benalmádena', location: '7 Marzo', price: 68, image: 'https://i.postimg.cc/1tNZntMv/Benalmadena.webp', rating: 4.7, days: 1, description: "Disfruta de la Costa del Sol visitando su famoso Puerto Marina, el Castillo de Colomares o paseando por sus playas." },
+          { id: 4, title: 'Fallas de Valencia', location: '15 Marzo', price: 65, image: 'https://i.postimg.cc/tTVHZT2G/fallas-de-valencia.jpg', rating: 5.0, days: 1, description: "Siente la emoción de la Mascletà y admira los monumentos artísticos en la fiesta más internacional de Valencia." },
+          { id: 5, title: 'Trujillo', location: '28 Marzo', price: 65, image: 'https://i.postimg.cc/g07W2RyB/trujillo.jpg', rating: 4.6, days: 1, description: "Viaja al pasado en la cuna de conquistadores. Su Plaza Mayor y castillo hacen de Trujillo una joya monumental." },
+          { id: 6, title: 'Lourdes - Baiona', location: '3-4 Abril', price: 172, image: 'https://i.postimg.cc/9fkhQTPS/lourdes-santuario-hd.jpg', rating: 4.8, days: 2, description: "Una combinación de espiritualidad y belleza costera en el santuario de Lourdes y Baiona." },
+          { id: 7, title: 'Alcalá de Júcar', location: '18 Abril', price: 65, image: 'https://i.postimg.cc/jj1bSN6g/alcala-de-julcar.jpg', rating: 4.7, days: 1, description: "Descubre uno de los pueblos más bonitos de España, con sus casas excavadas en la roca." },
+          { id: 8, title: 'Caravaca de la Cruz', location: '2-3 Mayo', price: 165, image: 'https://i.postimg.cc/ZqQS53P2/caravaca-de-la-cruz.webp', rating: 4.8, days: 2, description: "Vive la pasión de los Caballos del Vino y peregrina a la Ciudad Santa." },
+          { id: 9, title: 'Chelva', location: '16 Mayo', price: 65, image: 'https://i.postimg.cc/0N4symGf/chelva.webp', rating: 4.5, days: 1, description: "Recorre la Ruta del Agua y piérdete por los barrios históricos de Chelva." },
+          { id: 10, title: 'Patios de Córdoba', location: '30 Mayo', price: 68, image: 'https://i.postimg.cc/TPs63mjJ/patio-de-cordoba.webp', rating: 4.9, days: 1, description: "Una explosión de color y aroma en los famosos patios cordobeses." },
+          { id: 11, title: 'Galicia', location: '13-14 Junio', price: 175, image: 'https://i.postimg.cc/xdZ21HGy/Galicia.jpg', rating: 4.9, days: 2, description: "Paisajes verdes, rías impresionantes y la mejor gastronomía marinera." },
+          { id: 12, title: 'Alicante', location: '20-21 Junio', price: 165, image: 'https://i.postimg.cc/rpHkwWGS/alicante.jpg', rating: 4.7, days: 2, description: "Siente el ambiente previo a las Hogueras y sube al Castillo de Santa Bárbara." },
+          { id: 13, title: 'Galicia', location: '11-12 Julio', price: 175, image: 'https://i.postimg.cc/xdZ21HGy/Galicia.jpg', rating: 4.9, days: 2, description: "Segunda oportunidad para enamorarte de Galicia." },
+          { id: 14, title: 'Playa / Málaga', location: '25 Julio', price: 68, image: 'https://i.postimg.cc/bv5hwb0t/playa-malaga.jpg', rating: 4.8, days: 1, description: "Día de sol y playa en la capital de la Costa del Sol." },
+          { id: 15, title: 'Playa Torrox', location: '1 Agosto', price: 68, image: 'https://i.postimg.cc/jj2TTvfy/Playa-Torrox.webp', rating: 4.6, days: 1, description: "Disfruta del 'Mejor Clima de Europa' en playas tranquilas." },
+          { id: 16, title: 'Andorra', location: '15-16 Agosto', price: 180, image: 'https://i.postimg.cc/ZqQS53P8/Andorra.webp', rating: 4.9, days: 2, description: "Compras, naturaleza pirenaica y relax." },
+          { id: 17, title: 'Torrevieja', location: '22 Agosto', price: 68, image: 'https://i.postimg.cc/9f02219w/Torrevieja.webp', rating: 4.5, days: 1, description: "Descubre las Lagunas de La Mata y disfruta de sus playas." },
+          { id: 18, title: 'La Tomatina', location: '26 Agosto', price: 65, image: 'https://i.postimg.cc/zfvNNphK/la-tomatina.webp', rating: 5.0, days: 1, description: "¡La batalla más divertida del mundo! Adrenalina y tomates en Buñol." },
+          { id: 19, title: 'Feria / Albacete', location: '12-13 Septiembre', price: 65, image: 'https://i.postimg.cc/8CcGGwvR/feria-albacete.jpg', rating: 4.8, days: 2, description: "Vive la Feria de Albacete, declarada de Interés Turístico Internacional." },
+        ];
+
+        const featuredTrips = [
+          { title: 'París', subtitle: 'La Ciudad de la Luz', dates: '25-28 de Junio', image: 'https://i.postimg.cc/TYb9CHdx/Paris.jpg', description: 'Vive el romance y el arte. Torre Eiffel, Louvre y el Sena.' },
+          { title: 'Roma', subtitle: 'La Ciudad Eterna', dates: '29 Oct - 1 Nov', image: 'https://i.postimg.cc/wTNV0b6Z/Roma.jpg', description: 'Historia viva. Coliseo, Vaticano y la mejor gastronomía.' },
+          { title: 'Dubái', subtitle: 'Lujo y Futuro', dates: '18-22 de Noviembre', image: 'https://i.postimg.cc/gkhDNBzb/Dubai.webp', description: 'Rascacielos imposibles, desierto mágico y compras de lujo.' }
+        ];
+
+        const galleryImages = [
+            "https://i.postimg.cc/7PGdr9HM/Whats-App-Image-2026-01-13-at-22-10-08-(1).jpg", 
+            "https://i.postimg.cc/447qRPf1/Whats-App-Image-2026-01-13-at-22-10-08-(2).jpg", 
+            "https://i.postimg.cc/VvCV9fG7/Whats-App-Image-2026-01-13-at-22-10-10.jpg",
+            "https://i.postimg.cc/c1g2Ghxm/Whats-App-Image-2026-01-13-at-22-10-10-(1).jpg", 
+            "https://i.postimg.cc/Hnyh0YZ6/Whats-App-Image-2026-01-13-at-22-10-10-(2).jpg", 
+            "https://i.postimg.cc/cCnb7x9h/Whats-App-Image-2026-01-13-at-22-10-10-(3).jpg",
+            "https://i.postimg.cc/rsrPGVZk/Whats-App-Image-2026-01-13-at-22-10-13.jpg", 
+            "https://i.postimg.cc/ZndMPb7D/Whats-App-Image-2026-01-13-at-22-10-13-(1).jpg", 
+            "https://i.postimg.cc/yxZbh1p1/Whats-App-Image-2026-01-13-at-22-10-14.jpg",
+            "https://i.postimg.cc/YCZdnD4g/Whats-App-Imaege-2026-02-13-at-13-23-20.jpg",
+            "https://i.postimg.cc/CK8mWCDn/Whats-App-Image-2026-02-13-at-13-23-19.jpg",
+            "https://i.postimg.cc/6QZYDVRv/Whats-App-Image-2026-02-13-at-13-23e-19.jpg",
+            "https://i.postimg.cc/Qdwf4YB1/Whats-App-Image-2026-02-13-at-13-2e3-20.jpg",
+            "https://i.postimg.cc/fbdB67Xt/Whats-App-Image-2026-02-13-at-13w-23-19.jpg",
+            "https://i.postimg.cc/7Lzmp175/Whats-App-Image-2026-0e2-13-at-13-23-19.jpg",
+            "https://i.postimg.cc/jSmMg3Wy/Whats-App-Image-2026-0e2-13-at-13-23-20.jpg",
+            "https://i.postimg.cc/DwHxjpWq/Whats-App-Image-2026-0e2-13-at-13-23e-19.jpg"
+        ];
+
+        // --- GLOBAL VARIABLES ---
+        let currentBookingInterest = '';
+        let heroSelectedDestId = '';
+        let cookiePrefs = { analytics: false, marketing: false };
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            // REDIRECTION LOGIC: Always enforce Home view and clean URL on load
+            // This prevents "Page Not Found" issues if the user refreshes on a "virtual" route
+            // or ensures the single-page app experience remains consistent.
+            /* 
+               CRITICAL FIX: Removed history.replaceState to prevent SecurityError 
+               in sandboxed/blob environments where modifying the URL path is restricted.
+            */
+            
+            navigateTo('home');
+
+            renderDestinations();
+            renderFeatured();
+            renderGallery();
+            renderCalendar();
+            renderOfferBar();
+            renderHeroSelectionModal();
+            startHeroTypewriter();
+            initGalleryScroll();
+            initCookies(); // Initialize Cookie Logic
+            lucide.createIcons();
+            
+            // Scroll event
+            window.addEventListener('scroll', () => {
+                const btn = document.getElementById('scroll-top');
+                if (window.scrollY > 400) {
+                    btn.classList.remove('opacity-0', 'translate-y-10');
+                } else {
+                    btn.classList.add('opacity-0', 'translate-y-10');
+                }
+            });
+        };
+
+        // --- COOKIE LOGIC ---
+        function initCookies() {
+            const stored = localStorage.getItem('tereviajes_cookies');
+            if (!stored) {
+                // Show banner after short delay
+                setTimeout(() => {
+                    document.getElementById('cookie-banner').classList.remove('hidden');
+                    document.getElementById('cookie-banner').classList.add('animate-fade-in-up');
+                }, 1500);
+            } else {
+                cookiePrefs = JSON.parse(stored);
+            }
+        }
+
+        window.openCookieSettings = () => {
+            openModal('cookie-settings-modal');
+            // Update toggles based on current prefs
+            updateToggleUI('analytics', cookiePrefs.analytics);
+            updateToggleUI('marketing', cookiePrefs.marketing);
+        };
+
+        window.acceptAllCookies = () => {
+            const all = { analytics: true, marketing: true };
+            saveCookies(all);
+        };
+
+        window.rejectAllCookies = () => {
+            const none = { analytics: false, marketing: false };
+            saveCookies(none);
+        };
+
+        window.saveCookiePreferences = () => {
+            saveCookies(cookiePrefs);
+        };
+
+        window.toggleCookie = (type) => {
+            cookiePrefs[type] = !cookiePrefs[type];
+            updateToggleUI(type, cookiePrefs[type]);
+        };
+
+        function updateToggleUI(type, isActive) {
+            const btn = document.getElementById(`toggle-${type}`);
+            const slider = btn.querySelector('span');
+            if (isActive) {
+                btn.classList.remove('bg-gray-200');
+                btn.classList.add('bg-trip-primary');
+                slider.classList.remove('translate-x-1');
+                slider.classList.add('translate-x-6');
+            } else {
+                btn.classList.add('bg-gray-200');
+                btn.classList.remove('bg-trip-primary');
+                slider.classList.add('translate-x-1');
+                slider.classList.remove('translate-x-6');
+            }
+        }
+
+        function saveCookies(prefs) {
+            localStorage.setItem('tereviajes_cookies', JSON.stringify(prefs));
+            cookiePrefs = prefs;
+            document.getElementById('cookie-banner').classList.add('hidden');
+            closeModal('cookie-settings-modal');
+            // Here you would trigger analytics/marketing scripts based on 'prefs'
+            console.log("Cookies Saved:", prefs);
+        }
+
+        // --- NAVIGATION ---
+        window.navigateTo = (viewId) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        
+        window.handleNavClick = (e, targetId) => {
+            e.preventDefault();
+            navigateTo('home');
+            setTimeout(() => {
+                const el = document.getElementById(targetId);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        };
+
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        };
+
+        // --- HERO LOGIC ---
+        function startHeroTypewriter() {
+            const phrases = ["Sueña", "Elige", "Realiza"];
+            let phraseIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+            const element = document.getElementById('hero-typewriter');
+            
+            function type() {
+                const current = phrases[phraseIndex];
+                if (isDeleting) {
+                    element.textContent = current.substring(0, charIndex - 1);
+                    charIndex--;
+                } else {
+                    element.textContent = current.substring(0, charIndex + 1);
+                    charIndex++;
+                }
+
+                if (!isDeleting && charIndex === current.length) {
+                    isDeleting = true;
+                    setTimeout(type, 2000);
+                } else if (isDeleting && charIndex === 0) {
+                    isDeleting = false;
+                    phraseIndex = (phraseIndex + 1) % phrases.length;
+                    setTimeout(type, 500);
+                } else {
+                    setTimeout(type, isDeleting ? 50 : 150);
+                }
+            }
+            type();
+        }
+
+        // Renamed/Refactored for new Modal
+        window.renderHeroSelectionModal = () => {
+             const grid = document.getElementById('hero-selection-grid');
+             grid.innerHTML = destinations.map(d => `
+                <div onclick="selectHeroDest(${d.id})" class="cursor-pointer group relative rounded-xl overflow-hidden aspect-square hover:shadow-lg transition-all transform hover:-translate-y-1">
+                    <img src="${d.image}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute bottom-3 left-3 text-white">
+                        <p class="font-bold text-sm md:text-base leading-tight">${d.title}</p>
+                        <p class="text-xs text-white/80">${d.location}</p>
+                    </div>
+                </div>
+             `).join('');
+        };
+
+        window.selectHeroDest = (id) => {
+            const dest = destinations.find(d => d.id === id);
+            if (dest) {
+                heroSelectedDestId = id;
+                document.getElementById('hero-selected-dest').innerText = dest.title;
+                document.getElementById('hero-selected-dest').classList.add('text-trip-black');
+                document.getElementById('hero-selected-date').innerText = dest.location;
+                document.getElementById('hero-date-icon').classList.add('text-trip-primary');
+                closeModal('hero-selection-modal');
+            }
+        };
+
+        window.handleHeroSearch = () => {
+             if (heroSelectedDestId) {
+                 const card = document.getElementById(`dest-card-${heroSelectedDestId}`);
+                 if(card) {
+                     card.scrollIntoView({behavior:'smooth', block: 'center'});
+                     // Apply highlight animation class
+                     card.classList.add('animate-highlight-card');
+                     // Remove class after animation to allow re-trigger
+                     setTimeout(() => card.classList.remove('animate-highlight-card'), 2000);
+                 }
+             } else {
+                 document.getElementById('destinos').scrollIntoView({behavior:'smooth'});
+             }
+        };
+
+        // --- RENDERING ---
+        function isTripFinished(dateStr) {
+            const months = {
+                'Enero': 0, 'Febrero': 1, 'Marzo': 2, 'Abril': 3, 'Mayo': 4, 'Junio': 5,
+                'Julio': 6, 'Agosto': 7, 'Septiembre': 8, 'Octubre': 9, 'Noviembre': 10, 'Diciembre': 11,
+                'Oct': 9, 'Nov': 10, 'Dic': 11, 'Sept': 8, 'Ago': 7 
+            };
+
+            // Limpieza básica y búsqueda del mes
+            const parts = dateStr.replace('-', ' ').replace(',', '').split(' ');
+            let monthIndex = -1;
+            
+            // Buscamos el último mes mencionado en la cadena (para casos como "29 Oct - 1 Nov")
+            for (let i = parts.length - 1; i >= 0; i--) {
+                const word = parts[i].charAt(0).toUpperCase() + parts[i].slice(1).toLowerCase();
+                if (months[word] !== undefined) {
+                    monthIndex = months[word];
+                    break;
+                }
+            }
+
+            if (monthIndex === -1) return false;
+
+            // Buscamos el último número (día de finalización)
+            const numbers = dateStr.match(/\d+/g);
+            if (!numbers) return false;
+            const lastDay = parseInt(numbers[numbers.length - 1]);
+
+            // Usamos el año actual para la comparación
+            const now = new Date();
+            const year = now.getFullYear();
+            
+            const tripEnd = new Date(year, monthIndex, lastDay);
+            tripEnd.setHours(23, 59, 59); // Final del día
+
+            return now > tripEnd;
+        }
+
+        function renderDestinations() {
+            const grid = document.getElementById('destinations-grid');
+            grid.innerHTML = destinations.map(d => {
+                const finished = isTripFinished(d.location);
+                
+                return `
+                <div id="dest-card-${d.id}" 
+                     onclick="${finished ? '' : `openDetailModal(${d.id})`}" 
+                     class="relative group bg-white rounded-3xl shadow-md transition-all duration-500 border border-transparent flex flex-col h-full ring-offset-4 ring-offset-trip-light ring-0 
+                     ${finished ? 'opacity-80 grayscale cursor-not-allowed' : 'hover:shadow-2xl hover:-translate-y-2 cursor-pointer hover:border-trip-ice hover:ring-2 ring-trip-ice'}">
+                    
+                    ${finished ? `
+                        <div class="absolute inset-0 z-20 overflow-hidden rounded-3xl pointer-events-none">
+                            <div class="absolute inset-0 bg-white/20 backdrop-blur-[1px]"></div>
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <span class="bg-red-600/90 text-white px-6 py-2 rounded-full font-bold text-lg shadow-xl border-2 border-white transform -rotate-12 inline-block whitespace-nowrap tracking-widest">
+                                    FINALIZADO
+                                </span>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="relative h-56 sm:h-64 overflow-hidden rounded-t-3xl">
+                        <img src="${d.image}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold flex gap-1 items-center z-10">
+                            <i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-current"></i> ${d.rating}
+                        </div>
+                    </div>
+                    <div class="p-5 flex flex-col flex-1">
+                        <div class="flex justify-between items-start mb-auto">
+                           <div>
+                               <h4 class="text-lg font-bold group-hover:text-trip-primary transition-colors">${d.title}</h4>
+                               <p class="text-gray-500 text-xs flex gap-1 items-center mt-1"><i data-lucide="clock" class="w-3 h-3"></i> ${d.days} días</p>
+                           </div>
+                           <div class="text-right">
+                               <p class="text-[10px] text-gray-400">Desde</p>
+                               <p class="text-lg font-bold text-trip-primary">${d.price}€</p>
+                           </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+                             <span class="text-xs font-medium text-gray-500 flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-3 h-3 text-trip-secondary"></i> ${d.location}
+                             </span>
+                             <span class="text-sm font-semibold text-trip-black ${finished ? 'text-red-400' : 'hover:underline decoration-trip-primary'}">
+                                ${finished ? 'Finalizado' : 'Más info'}
+                             </span>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            
+            // Re-run icons for new elements
+            if(window.lucide) window.lucide.createIcons();
+        }
+
+        function renderFeatured() {
+             document.getElementById('featured-grid').innerHTML = featuredTrips.map(t => `
+                <div onclick="openBookingModal('Interés en ${t.title}')" class="group relative h-[500px] rounded-[2rem] overflow-hidden cursor-pointer shadow-xl transition-transform duration-500 hover:-translate-y-2">
+                    <img src="${t.image}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-90"></div>
+                    <div class="absolute bottom-0 left-0 w-full p-8 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <p class="text-trip-tertiary font-medium mb-1 uppercase tracking-wider text-sm flex items-center gap-2"><i data-lucide="map-pin" class="w-3 h-3"></i> ${t.subtitle}</p>
+                        <h3 class="text-4xl font-display font-bold mb-4">${t.title}</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm"><i data-lucide="calendar" class="text-trip-secondary w-5 h-5"></i> <span class="font-semibold text-lg">${t.dates}</span></div>
+                            <p class="text-gray-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity delay-100">${t.description}</p>
+                            <button class="w-full bg-white text-trip-black font-bold py-3 rounded-xl hover:bg-trip-secondary hover:text-white transition-colors mt-4">Consultar Disponibilidad</button>
+                        </div>
+                    </div>
+                </div>
+             `).join('');
+        }
+        
+        function renderOfferBar() {
+            const container = document.getElementById('offer-bar-content');
+            
+            // Definimos los elementos de la oferta
+            const items = [
+                { icon: 'flame', color: 'text-yellow-300', text: 'OFERTAS 2026' },
+                { icon: 'alert-triangle', color: 'text-orange-300', text: 'PLAZAS LIMITADAS' },
+                { icon: 'plane', color: 'text-trip-ice', text: '¡RESERVA HOY!' },
+                { icon: 'star', color: 'text-yellow-400', text: 'MEJORES DESTINOS' },
+                { icon: 'gift', color: 'text-pink-300', text: 'DESCUENTOS GRUPALES' }
+            ];
+
+            // Generamos el HTML de un bloque de items
+            const generateBlock = () => items.map(item => `
+                <div class="flex items-center gap-3 mx-8 md:mx-12">
+                    <i data-lucide="${item.icon}" class="${item.color} w-5 h-5 md:w-6 md:h-6"></i>
+                    <span class="font-bold uppercase text-xs md:text-sm whitespace-nowrap tracking-widest text-white/90">${item.text}</span>
+                </div>
+            `).join('');
+
+            const contentBlock = generateBlock();
+
+            // Insertamos dos bloques idénticos con la animación de marquee (Continuous Loop Fix)
+            const trackClass = "flex items-center animate-marquee min-w-full flex-shrink-0 justify-around py-1";
+
+            container.innerHTML = `
+                <div class="${trackClass}">
+                    ${contentBlock}
+                </div>
+                <div class="${trackClass}" aria-hidden="true">
+                    ${contentBlock}
+                </div>
+            `;
+            
+            // Reinicializamos los iconos para el nuevo contenido inyectado
+            if(window.lucide) window.lucide.createIcons();
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('gallery-container');
+            const images = [...galleryImages, ...galleryImages]; // Double for seamless
+            container.innerHTML = images.map(src => `
+               <div class="relative h-64 w-48 md:h-80 md:w-64 flex-shrink-0 rounded-2xl overflow-hidden shadow-lg border-2 border-white transform hover:scale-95 transition-transform select-none">
+                   <img src="${src}" class="h-full w-full object-cover pointer-events-none draggable-none" ondragstart="return false;">
+               </div>
+            `).join('');
+            container.classList.add('cursor-grab', 'active:cursor-grabbing');
+        }
+        
+        function initGalleryScroll() {
+            const container = document.getElementById('gallery-container');
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            let isPaused = false;
+            const speed = 0.5;
+
+            const animate = () => {
+                if (!isDown && !isPaused) {
+                    container.scrollLeft += speed;
+                }
+                
+                // Infinite Loop Logic
+                const maxScroll = container.scrollWidth / 2;
+                
+                if (container.scrollLeft >= maxScroll) {
+                    container.scrollLeft = container.scrollLeft - maxScroll;
+                } else if (container.scrollLeft <= 0) {
+                     // For manual dragging left, though basic auto scroll goes right
+                }
+
+                requestAnimationFrame(animate);
+            };
+            
+            // Mouse Events
+            container.addEventListener('mousedown', (e) => {
+                isDown = true;
+                isPaused = true;
+                container.classList.add('cursor-grabbing');
+                container.classList.remove('cursor-grab');
+                startX = e.pageX - container.offsetLeft;
+                scrollLeft = container.scrollLeft;
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                isDown = false;
+                isPaused = false;
+                container.classList.remove('cursor-grabbing');
+                container.classList.add('cursor-grab');
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isDown = false;
+                isPaused = false;
+                container.classList.remove('cursor-grabbing');
+                container.classList.add('cursor-grab');
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - container.offsetLeft;
+                const walk = (x - startX) * 2; 
+                container.scrollLeft = scrollLeft - walk;
+            });
+
+            // Touch Events
+            container.addEventListener('touchstart', (e) => {
+                isDown = true;
+                isPaused = true;
+                startX = e.touches[0].pageX - container.offsetLeft;
+                scrollLeft = container.scrollLeft;
+            }, {passive: true});
+            
+            container.addEventListener('touchend', () => {
+                isDown = false;
+                isPaused = false;
+            });
+            
+            container.addEventListener('touchmove', (e) => {
+                if (!isDown) return;
+                const x = e.touches[0].pageX - container.offsetLeft;
+                const walk = (x - startX) * 2;
+                container.scrollLeft = scrollLeft - walk;
+            }, {passive: true});
+
+            // Hover Pause
+            container.addEventListener('mouseenter', () => isPaused = true);
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- MODALS ---
+        window.openModal = (id) => {
+             document.getElementById(id).classList.remove('hidden');
+             setTimeout(() => document.getElementById(id).classList.add('open'), 10);
+             document.body.style.overflow = 'hidden';
+        };
+        
+        window.closeModal = (id) => {
+             document.getElementById(id).classList.remove('open');
+             setTimeout(() => document.getElementById(id).classList.add('hidden'), 300);
+             document.body.style.overflow = 'auto';
+        };
+
+        window.openBookingModal = (interest = '') => {
+            currentBookingInterest = interest;
+            openModal('booking-modal');
+        };
+
+        window.redirectToWhatsApp = () => {
+            const phone = "34649866985";
+            const msg = currentBookingInterest 
+                ? `Hola Tereviajes, me interesa: *${currentBookingInterest}*.` 
+                : "Hola Tereviajes, quiero información para mi próximo viaje.";
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            closeModal('booking-modal');
+        };
+
+        window.openDetailModal = (id) => {
+             const d = destinations.find(x => x.id == id);
+             if(!d) return;
+             document.getElementById('detail-img').src = d.image;
+             document.getElementById('detail-rating').innerText = d.rating;
+             document.getElementById('detail-title').innerText = d.title;
+             document.getElementById('detail-price').innerText = d.price + '€';
+             document.getElementById('detail-date').innerText = d.location;
+             document.getElementById('detail-days').innerText = d.days + (d.days===1?' Día':' Días');
+             document.getElementById('detail-desc').innerText = d.description;
+             openModal('detail-modal');
+        };
+
+        function renderCalendar() {
+            // Group by month logic simplified
+            const container = document.getElementById('calendar-content');
+            const grouped = {};
+            destinations.forEach(d => {
+                const month = d.location.split(' ').pop();
+                if(!grouped[month]) grouped[month] = [];
+                grouped[month].push(d);
+            });
+            // Manual sort order
+            const months = ['Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre'];
+            
+            container.innerHTML = months.filter(m => grouped[m]).map(m => `
+                 <div>
+                    <h3 class="text-2xl font-bold text-trip-black mb-4 border-b border-gray-200 pb-2">${m}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${grouped[m].map(d => {
+                            const finished = isTripFinished(d.location);
+                            return `
+                            <div onclick="${finished ? '' : `closeModal('calendar-modal'); openBookingModal('${d.title}')`}" 
+                                 class="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 ${finished ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:shadow-md cursor-pointer'}">
+                                <div class="relative">
+                                    <img src="${d.image}" class="w-16 h-16 rounded-xl object-cover">
+                                    ${finished ? '<div class="absolute inset-0 bg-white/50 flex items-center justify-center"><i data-lucide="lock" class="w-4 h-4 text-gray-800"></i></div>' : ''}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold ${finished ? 'line-through text-gray-400' : ''}">${d.title}</h4>
+                                    <p class="text-xs text-gray-500">${d.location}</p>
+                                </div>
+                                <div class="ml-auto font-bold ${finished ? 'text-gray-400' : 'text-trip-primary'}">${d.price}€</div>
+                            </div>
+                        `}).join('')}
+                    </div>
+                 </div>
+            `).join('');
+        }
+        window.openCalendarModal = () => openModal('calendar-modal');
+
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
