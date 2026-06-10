@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, Cookie, Settings, Shield, Info } from 'lucide-react';
 
 interface CookiesProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
 }
 
 const CookiesPolicy: React.FC<CookiesProps> = ({ onNavigate }) => {

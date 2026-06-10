@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 interface NavbarProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
   onOpenBooking: () => void;
 }
 

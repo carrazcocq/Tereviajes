@@ -10,6 +10,8 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiesPolicy from './components/CookiesPolicy';
 import CookieConsent from './components/CookieConsent';
 import AboutUs from './components/AboutUs';
+import AvisoLegal from './components/AvisoLegal';
+import CondicionesGenerales from './components/CondicionesGenerales';
 import BookingModal from './components/BookingModal';
 import CalendarModal from './components/CalendarModal';
 import DestinationDetailModal from './components/DestinationDetailModal';
@@ -17,7 +19,7 @@ import OfferBar from './components/OfferBar';
 import { Destination } from './types';
 import { destinations } from './data/destinations';
 
-type ViewState = 'home' | 'terms' | 'privacy' | 'cookies' | 'about';
+type ViewState = 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions';
 
 const App: React.FC = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -69,7 +71,7 @@ const App: React.FC = () => {
 
   const handleNavigate = (view: ViewState) => {
     setCurrentView(view);
-    if (view === 'terms' || view === 'privacy' || view === 'cookies' || view === 'about') {
+    if (view === 'terms' || view === 'privacy' || view === 'cookies' || view === 'about' || view === 'legal-notice' || view === 'contract-conditions') {
       window.scrollTo(0, 0);
     }
   };
@@ -112,6 +114,10 @@ const App: React.FC = () => {
         return <PrivacyPolicy onNavigate={handleNavigate} />;
       case 'cookies':
         return <CookiesPolicy onNavigate={handleNavigate} />;
+      case 'legal-notice':
+        return <AvisoLegal onNavigate={handleNavigate} />;
+      case 'contract-conditions':
+        return <CondicionesGenerales onNavigate={handleNavigate} />;
       case 'about':
         return <AboutUs onNavigate={handleNavigate} onOpenBooking={() => handleOpenBooking("Información General")} />;
       case 'home':

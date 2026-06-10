@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, FileText, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface TermsProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
 }
 
 const TermsAndConditions: React.FC<TermsProps> = ({ onNavigate }) => {

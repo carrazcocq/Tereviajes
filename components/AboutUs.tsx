@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, Heart, Globe, ShieldCheck, Smile } from 'lucide-react';
 
 interface AboutProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
   onOpenBooking: () => void;
 }
 

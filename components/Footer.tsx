@@ -2,7 +2,7 @@ import React from 'react';
 import { Facebook } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
   onOpenBooking: () => void;
 }
 
@@ -36,6 +36,24 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenBooking }) => {
           <div>
             <h4 className="font-bold mb-4 md:mb-6 text-lg">Soporte</h4>
             <ul className="space-y-3 md:space-y-4 text-gray-400 text-sm">
+              <li 
+                className="hover:text-trip-primary cursor-pointer transition-colors"
+                onClick={() => {
+                  onNavigate('legal-notice');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                Aviso Legal
+              </li>
+              <li 
+                className="hover:text-trip-primary cursor-pointer transition-colors"
+                onClick={() => {
+                  onNavigate('contract-conditions');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                Condiciones de Contratación
+              </li>
               <li 
                 className="hover:text-trip-primary cursor-pointer transition-colors"
                 onClick={() => {

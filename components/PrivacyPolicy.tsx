@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, Lock, Eye, Database, UserCheck, Mail, ShieldCheck } from 'lucide-react';
 
 interface PrivacyProps {
-  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about') => void;
+  onNavigate: (view: 'home' | 'terms' | 'privacy' | 'cookies' | 'about' | 'legal-notice' | 'contract-conditions') => void;
 }
 
 const PrivacyPolicy: React.FC<PrivacyProps> = ({ onNavigate }) => {
